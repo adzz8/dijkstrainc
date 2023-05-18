@@ -92,16 +92,14 @@ void free_edge(Edge *edge)
 }
 
 
-/* remove all edges from vertex with id from to vertex with id to from graph. */
 void remove_edge(Graph *graph, int from, int to) {
     Node* curr;
     Node* prev; 
     Node* tmp;
     Vertex *from_vertex = find_vertex(graph, from);
-    Vertex *to_vertex = find_vertex(graph, to);
 
-    if(from_vertex == NULL || to_vertex == NULL) {
-        fprintf(stderr,"Error: failed to remove edge. Could not find one or both vertices.\n");
+    if(from_vertex == NULL) {
+        fprintf(stderr,"Error: failed to remove edge. Could not find the vertex.\n");
         return;
     }
 
@@ -110,7 +108,7 @@ void remove_edge(Graph *graph, int from, int to) {
 
     while(curr != NULL) {
         Edge *edge = curr->data;
-        if(edge->vertex == to_vertex) {
+        if(edge->vertex->id == to) {
             if(prev != NULL) {
                 prev->next = curr->next;
             } else {
@@ -127,204 +125,87 @@ void remove_edge(Graph *graph, int from, int to) {
     }
 }
 
-
-/* remove all edges from vertex with specified id. */
 void remove_edges(Graph *graph, int id)
 {
-	Edge *edge;
     Vertex *vertex = find_vertex(graph, id);
     if(vertex == NULL) {
         fprintf(stderr,"Error: failed to remove edges.\n");
         return;
     }
     while(vertex->edges->head != NULL) {
-        edge = vertex->edges->head->data;
-        free_edge(edge);
-        remove_head_linked_list(vertex->edges);
+        Node *curr = vertex->edges->head;
+        vertex->edges->head = curr->next;
+        free_edge((Edge*)curr->data);
+        free(curr);
     }
 }
 
-/* output all vertices and edges in graph. */
-/* each vertex in the graphs should be printed on a new line */
-/* each vertex should be printed in the following format: */
-/* vertex_id: edge_to_vertex[weight] edge_to_vertex[weight] ... */
-/* for example: */
-/* 1: 3[1.00] 5[2.00] */
-/* indicating that vertex id 1 has edges to vertices 3 and 5 */
-/* with weights 1.00 and 2.00 respectively */
-/* weights should be output to two decimal places */
-void print_graph(Graph *graph)
-{
-    Node *curr;
-     Node *edge_curr;
-    if(graph == NULL) {
-        fprintf(stderr,"Error: failed to print graph.\n");
-        return;
-    }
-    curr = graph->head;
-   
-    
-    while(curr != NULL) {
-        Vertex *vertex = curr->data;
-        printf("%d: ", vertex->id);
-        edge_curr = vertex->edges->head;
-        while(edge_curr != NULL) {
-            Edge *edge = edge_curr->data;
-            printf("%d[%.2f] ", edge->vertex->id, edge->weight);
-            edge_curr = edge_curr->next;
-        }
-        printf("\n");
-        curr = curr->next;
-    }
-}
-
-/* find vertex with specified id in graph. */
-/* return pointer to vertex, or NULL if no vertex found. */
-
-Vertex *find_vertex(Graph *graph, int id)
-{
-    Node *curr;
-    if(graph == NULL) {
-        fprintf(stderr,"Error: failed to find vertex.\n");
-        return NULL;
-    }
-    curr = graph->head;
-    while(curr != NULL) {
-        Vertex *vertex = curr->data;
-        if(vertex->id == id) {
-            return vertex;
-        }
-        curr = curr->next;
-    }
-    return NULL;
-}
-
-/* create and add vertex with specified id to graph. */
-/* return pointer to vertex or NULL if an error occurs. */
-/* if vertex with id already exists, return pointer to existing vertex. */
 Vertex *add_vertex(Graph *graph, int id)
 {
-    Vertex *vertex;
-    if(graph == NULL) {
-        fprintf(stderr,"Error: failed to add vertex.\n");
-        return NULL;
-    }
-    vertex = find_vertex(graph, id);
+    Vertex *vertex = find_vertex(graph, id);
     if(vertex != NULL) {
         return vertex;
     }
     vertex = init_vertex(id);
-    append_linked_list(graph, vertex);
+    if(graph->head == NULL) {
+        graph->head = vertex;
+    } else {
+        Vertex *curr = graph->head;
+        while(curr->next != NULL) {
+            curr = curr->next;
+        }
+        curr->next = vertex;
+    }
     return vertex;
 }
 
-/* remove vertex with specified id from graph. */
-/* remove all edges between specified vertex and any other vertices in graph. */
-
 void remove_vertex(Graph *graph, int id) {
-    Vertex *vertex;
-    Node *curr;
-    Node *prev;
-    if(graph == NULL) {
-        fprintf(stderr,"Error: failed to remove vertex.\n");
-        return;
-    }
-    vertex = find_vertex(graph, id);
-    if(vertex == NULL) {
-        fprintf(stderr, "Error: vertex does not exist.\n");
-        return;
-    }
-
-    curr = graph->head;
+    Vertex *prev = NULL;
+    Vertex *curr = graph->head;
     while(curr != NULL) {
-        Vertex *vertex_curr = curr->data;
-        remove_edge(graph, vertex_curr->id, vertex->id);
+        if(curr->id == id) {
+            if(prev != NULL) {
+                prev->next = curr->next;
+            } else {
+                graph->head = curr->next;
+            }
+            remove_edges(graph, id);
+            free_vertex(curr);
+            return;
+        }
+        prev = curr;
         curr = curr->next;
     }
-    
-    while(vertex->edges->head != NULL) {
-        Edge *edge = vertex->edges->head->data;
-        free_edge(edge);
-        remove_head_linked_list(vertex->edges);
-    }
-
-    if(graph->head->data == vertex) {
-        curr = graph->head;
-        graph->head = graph->head->next;
-    } else {
-        prev = graph->head;
-        curr = graph->head->next;
-        while(curr != NULL) {
-            if(curr->data == vertex) {
-                prev->next = curr->next;
-                break;
-            }
-            prev = curr;
-            curr = curr->next;
-        }
-    }
-    free_vertex(vertex);
-    free(curr);
+    fprintf(stderr, "Error: vertex does not exist.\n");
 }
 
-
-/* add directed edge with specified weight between vertex with id from */
-/* to vertex with id to. */
-/* if no vertices with specified ids (from or to) exist */
-/* then the vertices will be created. */
-/* multiple edges between the same pair of vertices are allowed. */
-/* return pointer to edge, or NULL if an error occurs found. */
 Edge *add_edge(Graph *graph, int from, int to, double weight)
 {
-    Vertex *from_vertex;
-    Vertex *to_vertex;
-    Edge *edge;
-    if(graph == NULL) {
-        fprintf(stderr,"Error: failed to add edge.\n");
-        return NULL;
-    }
-    from_vertex = add_vertex(graph, from);
-    to_vertex = add_vertex(graph, to);
+    Vertex *from_vertex = add_vertex(graph, from);
+    Vertex *to_vertex = add_vertex(graph, to);
 
-    edge = init_edge();
+    Edge *edge = init_edge();
     edge->vertex = to_vertex;
     edge->weight = weight;
 
-    append_linked_list(from_vertex->edges, edge);
+    if(from_vertex->edges->head == NULL) {
+        from_vertex->edges->head = edge;
+    } else {
+        Edge *curr = from_vertex->edges->head;
+        while(curr->next != NULL) {
+            curr = curr->next;
+        }
+        curr->next = edge;
+    }
     return edge;
 }
 
-/* add two edges to graph, one from vertex with id from to vertex with id to, */
-/* and one from vertex with id to to vertex with id from. */
-/* both edges should have the same weight */
-/* if no vertices with specified ids (from or to) exist */
-/* then the vertices will be created. */
-/* multiple vertices between the same pair of vertices are allowed. */
-
 void add_edge_undirected(Graph *graph, int from, int to, double weight)
 {
-    Vertex *from_vertex;
-    Vertex *to_vertex;
-    Edge *edge1,*edge2;
-    if(graph == NULL) {
-        fprintf(stderr,"Error: failed to add edge undirected.\n");
-        return;
-    }
-    from_vertex = add_vertex(graph, from);
-    to_vertex = add_vertex(graph, to);
-    
-
-    edge1 = init_edge();
-    edge1->vertex = to_vertex;
-    edge1->weight = weight;
-    append_linked_list(from_vertex->edges, edge1);
-
-    edge2 = init_edge();
-    edge2->vertex = from_vertex;
-    edge2->weight = weight;
-    append_linked_list(to_vertex->edges, edge2);
-
+    add_edge(graph, from, to, weight);
+    add_edge(graph, to, from, weight);
 }
+
 /* return array of node ids in graph. */
 /* array of node ids should be dynamically allocated */
 /* set count to be the number of nodes in graph */

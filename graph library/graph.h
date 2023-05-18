@@ -25,7 +25,6 @@ typedef struct Edge {
 
 Graph *init_graph(void);
 void free_graph(Graph *);
-void print_graph(Graph *);
 Vertex *find_vertex(Graph *, int);
 Vertex *add_vertex(Graph *, int);
 void remove_vertex(Graph *, int);

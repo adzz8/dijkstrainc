@@ -9,7 +9,6 @@
 #include <errno.h>
 #include <sys/socket.h>
 #include <float.h>
-/* You will also need to add #include for your graph library header files */
 #include "graph.h"
 #include "dijkstra.h"
 #define kBufSize 12
