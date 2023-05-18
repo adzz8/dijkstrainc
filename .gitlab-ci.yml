@@ -1,0 +1,29 @@
+stages:
+    - build
+    - test
+
+build-code:
+    stage: build
+    tags:
+        - comp1005_2022_coursework_06_sandbox
+    artifacts:
+        name: "$CI_COMMIT_REF_NAME"
+        when: on_success
+        expire_in: 1 hour
+        paths:
+            - log/
+    script:
+        - run_build
+
+test-code:
+    stage: test
+    tags:
+        - comp1005_2022_coursework_06_assessor
+    artifacts:
+        name: "$CI_COMMIT_REF_NAME"
+        when: on_success
+        expire_in: 1 week
+        paths:
+            - log/
+    script:
+        - run_test
