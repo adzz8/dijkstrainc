@@ -33,6 +33,27 @@ void free_graph(Graph *graph)
     free_linked_list(graph);
 }
 
+/* return vertex with the given id. */
+/* return NULL if no such vertex exists in the graph. */
+Vertex *find_vertex(Graph *graph, int id) {
+    Node* curr;
+    if (graph == NULL) {
+        fprintf(stderr,"Error: failed to find vertex. Graph is NULL.\n");
+        return NULL;
+    }
+
+    curr = graph->head;
+    while (curr != NULL) {
+        Vertex *vertex = curr->data;
+        if (vertex->id == id) {
+            return vertex;
+        }
+        curr = curr->next;
+    }
+    return NULL;
+}
+
+
 /* initialise a vertex */
 /* return pointer to initialised vertex */
 Vertex *init_vertex(int id)
