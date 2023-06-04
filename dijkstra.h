@@ -1,20 +1,22 @@
-#ifndef DIJKSTRA_H
-#define DIJKSTRA_H
+/*
+ *  dijkstras.h
+ *  ProgrammingPortfolio
+ *
+ */
 
-#include "graph.h"
+#ifndef dijkstra_h
+#define dijkstra_h
 
-typedef struct PriorityQueue {
-    int *nodes;
-    double *weights;
-    int size;
-} PriorityQueue;
-
-typedef struct Path {
+/* an entry storing the shortest path */
+/* next_hop is the next vertex in the path */
+/* weight is the total weight of the path to dst */
+typedef struct Path
+{
     int next_hop;
     double weight;
 } Path;
 
-int ExtractMin(PriorityQueue *queue);
-Path *dijkstra(Graph *graph, int source, int *pnEntries);
 
-#endif /* DIJKSTRA_H */
+Path *dijkstra(Graph *graph, int id, int *pnEntries);
+
+#endif /* dijkstras_h */
