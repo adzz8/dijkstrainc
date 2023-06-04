@@ -5,24 +5,12 @@
 #include "graph.h"
 #include "dijkstra.h"
 
-/* find shortest paths between source node id and all other nodes in graph. */
-/* upon success, returns an array containing a table of shortest paths.  */
-/* return NULL if *graph is uninitialised or an error occurs. */
-/* each entry of the table array should be a Path */
-/* structure containing the path information for the shortest path between */
-/* the source node and every node in the graph. If no path exists to a */
-/* particular desination node, then next should be set to -1 and weight */
-/* to DBL_MAX in the Path structure for this node */
-
- Path *dijkstra(Graph *graph, int id, int *pnEntries)
+Path *dijkstra(Graph *graph, int id, int *pnEntries)
 {
-    Path *table = NULL;
     int max = 0;
-    int i, x;
-    int current_node = 0;
-    double current_weight = DBL_MAX;
+    int i, current_node = -1;
+    double current_weight;
     Edge* temp_edge;
-    int curr,prev;
 
     typedef struct table_record{
         int Visited;
@@ -30,50 +18,42 @@
         int prev_Node;
         double weight;
     }table_record;
+
     table_record* record;
-   
-    for(i = 0; i < 256; i++){
-        if(find_vertex(graph,i)){
-            if( i > max){
-                max = i;
-            }
+
+    for(i = 0; i < 256; i++) {
+        if(find_vertex(graph,i)) {
+            max = (i > max) ? i : max;
         }
     }
     max++;
 
-    table = (Path*)calloc(max, sizeof(Path));
+    Path *table = (Path*)calloc(max, sizeof(Path));	
     record = calloc(max, sizeof(table_record));
 
-    if(!find_vertex(graph, id)){
+    if(!find_vertex(graph, id)) {
         fprintf(stderr, "ERROR: NOT VALID\n");
         return NULL;
     }
 
-    for(i = 0; i < max; i++){
-        if(find_vertex(graph,i)){
+    for(i = 0; i < max; i++) {
+        if(find_vertex(graph,i)) {
             record[i].Node = i;
-            if(record[i].Node == id){
+            record[i].prev_Node = -1;
+            record[i].Visited = 0;
+            record[i].weight = DBL_MAX;
+
+            table[i].next_hop = -1;
+            table[i].weight = DBL_MAX;
+
+            if(i == id) {
                 record[i].Visited = 1;
-                record[i].weight = DBL_MAX;
-                record[i].prev_Node = -1;
-                table[i].next_hop = -1;
-                table[i].weight = DBL_MAX;
-            }
-            else{
+            } else {
                 temp_edge = get_edge(graph, id , i);
-                if(!temp_edge){
-                    record[i].weight = DBL_MAX;
-                    record[i].prev_Node = -1;
-                    record[i].Visited = 0;
-
-                    table[i].next_hop = -1;
-                    table[i].weight = DBL_MAX;
-
-                }
                 if(temp_edge){
                     record[i].weight = temp_edge->weight;
                     record[i].prev_Node = id;
-                    record[i].Visited = 0;
+
                     table[i].next_hop = i;
                     table[i].weight = temp_edge->weight;
                 }
@@ -81,51 +61,39 @@
         }
     }
 
-    for(x = 0; x < max; x++){
-        for(i = 0; i < max; i++){
-            if(find_vertex(graph, i)){
-                if(!record[i].Visited){
-                    if(record[i].weight < current_weight){
-                        current_weight = record[i].weight;
-                        current_node = record[i].Node;
+    for(int x = 0; x < max; x++) {
+        current_weight = DBL_MAX;
+        for(i = 0; i < max; i++) {
+            if(find_vertex(graph, i) && !record[i].Visited && record[i].weight < current_weight) {
+                current_weight = record[i].weight;
+                current_node = record[i].Node;
+            }
+        }
+
+        if(current_node != -1) {
+            for(i = 0; i < max; i++) {
+                if(!record[i].Visited) {
+                    temp_edge = get_edge(graph, current_node, i);
+                    if(temp_edge) {
+						current_weight = record[current_node].weight + temp_edge->weight;
+						if(current_weight < record[i].weight) {
+							record[i].weight = current_weight;
+							record[i].prev_Node = current_node;
+							table[i].weight = current_weight;
+							int prev_node = current_node;
+							while(record[prev_node].prev_Node != id && record[prev_node].prev_Node != -1) {
+								prev_node = record[prev_node].prev_Node;
+							}
+							table[i].next_hop = prev_node;
+						}
+
                     }
                 }
             }
+            record[current_node].Visited = 1;
         }
-        for(i = 0; i < max; i++){
-            if(!record[i].Visited){
-                
-                temp_edge = get_edge(graph, current_node, i);
-                if(temp_edge){
-                    current_weight = record[current_node].weight;
-                    current_weight+= temp_edge->weight;
-                    if(current_weight < record[i].weight){
-                        record[i].weight = current_weight;
-                        table[i].weight = current_weight;
-                        record[i].prev_Node = current_node;
-                        table[i].next_hop = current_node;
-                        
-                    }
-                }
-            }
-        }
-        record[current_node].Visited = 1;
-        current_weight = DBL_MAX; 
     }
 
-    for(i = 0; i < max; i++){
-        if(record[i].Node != 0){
-            if(record[i].prev_Node != -1){
-                curr = record[i].Node;
-                prev = record[i].prev_Node;
-                while(prev != id){
-                    curr = prev;
-                    prev = record[prev].prev_Node;
-                }
-                table[i].next_hop = curr;
-            }
-        }
-    }
     *pnEntries = max;
     free(record);
     return table;
